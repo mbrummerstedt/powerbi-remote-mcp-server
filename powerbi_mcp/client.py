@@ -176,28 +176,31 @@ ORDER BY [Name]
         """
         Return measures defined in the dataset.
 
+        INFO.VIEW.MEASURES() exposes the table name via the [Table] column
+        (not [TableName] as the older INFO.MEASURES() schema used).
+
         Parameters
         ----------
         table_name:
             If provided, only return measures from that table.
         """
-        filter_clause = (
-            f'NOT [IsHidden] && [TableName] = "{table_name}"'
+        table_filter = (
+            f'\n    && [Table] = "{table_name}"'
             if table_name
-            else "NOT [IsHidden]"
+            else ""
         )
         dax = f"""
 EVALUATE
 SELECTCOLUMNS(
     FILTER(
         INFO.VIEW.MEASURES(),
-        {filter_clause}
+        NOT [IsHidden]{table_filter}
     ),
-    "Name",           [Name],
-    "TableName",      [TableName],
-    "Description",    [Description],
-    "FormatString",   [FormatString],
-    "Expression",     [Expression]
+    "Name",         [Name],
+    "TableName",    [Table],
+    "Description",  [Description],
+    "FormatString", [FormatString],
+    "Expression",   [Expression]
 )
 ORDER BY [TableName], [Name]
 """.strip()
@@ -211,30 +214,35 @@ ORDER BY [TableName], [Name]
         """
         Return columns (dimensions) defined in the dataset.
 
+        INFO.VIEW.COLUMNS() exposes the table name via [Table] (not [TableName]),
+        uses [Name] and [DataType] directly (not [ExplicitName]/[ExplicitDataType]),
+        and [Type] is a string: "Data" selects regular source columns only
+        (excludes "Calculated", "CalculatedTableColumn", "RowNumber", etc.).
+
         Parameters
         ----------
         table_name:
             If provided, only return columns from that table.
         """
-        filter_clause = (
-            f'NOT [IsHidden] && [TableName] = "{table_name}"'
+        table_filter = (
+            f'\n    && [Table] = "{table_name}"'
             if table_name
-            else "NOT [IsHidden]"
+            else ""
         )
         dax = f"""
 EVALUATE
 SELECTCOLUMNS(
     FILTER(
         INFO.VIEW.COLUMNS(),
-        {filter_clause} && [Type] = 1
+        NOT [IsHidden] && [Type] = "Data"{table_filter}
     ),
-    "Name",         [ExplicitName],
-    "TableName",    [TableName],
+    "Name",         [Name],
+    "TableName",    [Table],
     "Description",  [Description],
-    "DataType",     [ExplicitDataType],
+    "DataType",     [DataType],
     "IsKey",        [IsKey]
 )
-ORDER BY [TableName], [ExplicitName]
+ORDER BY [TableName], [Name]
 """.strip()
         result = await self.execute_dax(workspace_id, dataset_id, dax)
         rows = _parse_dax_rows(result)

@@ -267,6 +267,19 @@ class TestListMeasures:
         assert result[0].name == "Total Sales"
 
     @respx.mock
+    async def test_dax_query_uses_info_view_measures(self, client: PowerBIClient):
+        import json
+
+        route = respx.post(
+            f"{BASE}/groups/{WORKSPACE_ID}/datasets/{DATASET_ID}/executeQueries"
+        ).mock(return_value=Response(200, json=make_dax_response([])))
+        await client.list_measures(WORKSPACE_ID, DATASET_ID)
+        body = json.loads(route.calls.last.request.content)
+        query = body["queries"][0]["query"]
+        assert "INFO.VIEW.MEASURES()" in query
+        assert "[Table]" in query
+
+    @respx.mock
     async def test_filter_by_table_name_in_dax(self, client: PowerBIClient):
         import json
 
@@ -290,6 +303,20 @@ class TestListColumns:
         assert len(result) == 1
         assert isinstance(result[0], Column)
         assert result[0].name == "ProductName"
+
+    @respx.mock
+    async def test_dax_query_uses_info_view_columns(self, client: PowerBIClient):
+        import json
+
+        route = respx.post(
+            f"{BASE}/groups/{WORKSPACE_ID}/datasets/{DATASET_ID}/executeQueries"
+        ).mock(return_value=Response(200, json=make_dax_response([])))
+        await client.list_columns(WORKSPACE_ID, DATASET_ID)
+        body = json.loads(route.calls.last.request.content)
+        query = body["queries"][0]["query"]
+        assert "INFO.VIEW.COLUMNS()" in query
+        assert '[Type] = "Data"' in query
+        assert "[Table]" in query
 
     @respx.mock
     async def test_filter_by_table_name_in_dax(self, client: PowerBIClient):
