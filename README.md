@@ -8,7 +8,8 @@ A read-only [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) ser
 
 | Tool | Description |
 |---|---|
-| `authenticate` | OAuth device code flow login — opens a browser URL you approve once |
+| `authenticate` | OAuth device code flow — first call returns a URL + code; second call completes sign-in |
+| `logout` | Clear cached credentials (forces re-authentication on next call) |
 | `list_workspaces` | List workspaces the user belongs to |
 | `list_datasets` | List datasets / semantic models in a workspace |
 | `get_dataset_info` | Metadata + last 5 refresh history entries for a dataset |
@@ -54,14 +55,24 @@ OAuth 2.0 requires a **client ID** to identify which application is acting on yo
 
 ### Step 2 — Install
 
+**Recommended — install with `uv` (no venv management needed):**
+
+```bash
+pip install uv   # if you don't have uv yet
+```
+
+**Alternative — install with pip:**
+
+```bash
+pip install powerbi-mcp
+```
+
+**Manual — clone and install from source:**
+
 ```bash
 git clone https://github.com/mbrummerstedt/powerbi-remote-mcp-server.git
 cd powerbi-remote-mcp-server
-
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-
-pip install -r requirements.txt
+pip install .
 ```
 
 ### Step 3 — Configure
@@ -83,24 +94,7 @@ POWERBI_TENANT_ID=organizations
 POWERBI_OUTPUT_DIR=powerbi_output
 ```
 
-### Step 4 — Log in (one-time)
-
-```bash
-python server.py --login
-```
-
-You will see a message like:
-
-```
-To sign in, use a web browser to open the page https://microsoft.com/devicelogin
-and enter the code ABCD1234 to authenticate.
-```
-
-Open the URL, enter the code, and sign in with your Power BI account. The token is cached securely in `~/.powerbi_mcp_token_cache.bin` using your OS's native secure storage (Keychain on macOS, DPAPI on Windows, LibSecret on Linux). It refreshes automatically for approximately 90 days.
-
----
-
-### Step 5 — Connect to your MCP client
+### Step 4 — Connect to your MCP client
 
 #### Claude Desktop
 
@@ -110,8 +104,8 @@ Add the following to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "powerbi": {
-      "command": "/absolute/path/to/.venv/bin/python",
-      "args": ["/absolute/path/to/powerbi-remote-mcp-server/server.py"],
+      "command": "uvx",
+      "args": ["powerbi-mcp"],
       "env": {
         "POWERBI_CLIENT_ID": "your-client-id",
         "POWERBI_TENANT_ID": "organizations"
@@ -133,8 +127,8 @@ Add a `.cursor/mcp.json` file in your project (or use the global config):
 {
   "mcpServers": {
     "powerbi": {
-      "command": "/absolute/path/to/.venv/bin/python",
-      "args": ["/absolute/path/to/powerbi-remote-mcp-server/server.py"],
+      "command": "uvx",
+      "args": ["powerbi-mcp"],
       "env": {
         "POWERBI_CLIENT_ID": "your-client-id"
       }
@@ -143,6 +137,17 @@ Add a `.cursor/mcp.json` file in your project (or use the global config):
 }
 ```
 
+#### Alternative (without uv)
+
+If you installed via `pip install powerbi-mcp`, replace `"command": "uvx"` + `"args": ["powerbi-mcp"]` with:
+
+```json
+"command": "powerbi-mcp",
+"args": []
+```
+
+Or point directly at the installed script path.
+
 ---
 
 ### Typical analysis workflow
@@ -150,7 +155,8 @@ Add a `.cursor/mcp.json` file in your project (or use the global config):
 Once connected, ask your LLM to follow this sequence naturally:
 
 ```
-1. authenticate          ← first run only; approves browser prompt
+1. authenticate          ← first run only; returns a URL + code to open in browser,
+                           then call authenticate again to complete sign-in
 2. list_workspaces       → returns workspace IDs
 3. list_datasets         workspace_id=<id>   → returns dataset IDs
 4. list_tables           workspace_id=<id>   dataset_id=<id>
@@ -233,14 +239,17 @@ Returns `rows`, `totalRows`, `offset`, `limit`, and `hasMore`. Increment `offset
 
 ```
 powerbi-remote-mcp-server/
-├── server.py                   # Entry point: loads config, registers tools, handles --login
-├── requirements.txt            # Runtime dependencies
+├── pyproject.toml              # Package metadata and entry point (powerbi-mcp)
+├── server.py                   # CLI wrapper: handles --login flag for terminal auth
+├── requirements.txt            # Runtime dependencies (mirrors pyproject.toml)
 ├── requirements-dev.txt        # Test dependencies (pytest, respx)
 ├── pytest.ini                  # asyncio_mode = auto
 ├── .env.example                # Environment variable template
 │
 ├── powerbi_mcp/
 │   ├── __init__.py
+│   ├── __main__.py             # Enables: python -m powerbi_mcp
+│   ├── app.py                  # FastMCP instance, settings, main() entry point
 │   ├── config.py               # Pydantic BaseSettings (POWERBI_CLIENT_ID, POWERBI_TENANT_ID, POWERBI_OUTPUT_DIR)
 │   ├── auth.py                 # MSAL device code flow + OS-native secure token cache
 │   ├── client.py               # Async httpx wrapper around the Power BI REST API
@@ -269,7 +278,8 @@ cd powerbi-remote-mcp-server
 python -m venv .venv
 source .venv/bin/activate
 
-pip install -r requirements.txt -r requirements-dev.txt
+pip install -e ".[dev]"
+# or: pip install -r requirements.txt -r requirements-dev.txt
 ```
 
 If you use [direnv](https://direnv.net/), the `.envrc` file activates the virtual environment automatically when you `cd` into the project.
@@ -293,7 +303,7 @@ The integration tests call the real Power BI REST API and skip automatically if 
 ### Architecture overview
 
 ```
-server.py
+powerbi_mcp/app.py
   └── Settings (pydantic-settings)   ← reads POWERBI_CLIENT_ID / POWERBI_TENANT_ID / POWERBI_OUTPUT_DIR
   └── FastMCP instance
   └── register_tools(mcp, client_id, tenant_id, output_dir)

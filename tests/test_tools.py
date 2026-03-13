@@ -65,20 +65,24 @@ class TestAuthenticate:
         assert "Already authenticated" in result
 
     async def test_no_token_initiates_flow(self):
+        """Phase 1: no token → returns URL + code, instructs user to call again."""
         mcp = FastMCP("Power BI Test")
         with patch(
             "powerbi_mcp.auth.PowerBIAuth.get_token_silent",
             return_value=None,
         ), patch(
             "powerbi_mcp.auth.PowerBIAuth.initiate_device_flow",
-            return_value={"message": "Go to https://microsoft.com/devicelogin", "user_code": "ABC123"},
-        ), patch(
-            "powerbi_mcp.auth.PowerBIAuth.complete_device_flow",
-            return_value="new-token",
+            return_value={
+                "message": "Go to https://microsoft.com/devicelogin",
+                "user_code": "ABC123",
+                "verification_uri": "https://microsoft.com/devicelogin",
+            },
         ):
             register_tools(mcp, "fake-client-id")
             result = await call(mcp, "authenticate")
-        assert "Authentication successful" in result
+        assert "ABC123" in result
+        assert "microsoft.com/devicelogin" in result
+        assert "authenticate" in result  # instructs user to call again
 
 
 # ---------------------------------------------------------------------------

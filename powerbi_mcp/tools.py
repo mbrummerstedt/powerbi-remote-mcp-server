@@ -61,28 +61,79 @@ def register_tools(
         Call this tool first if you have never logged in, or if a previous call
         returned "Not authenticated".
 
-        The tool will return a short URL and a one-time code.  Open the URL in a
-        browser (on any device), enter the code, and sign in with your
-        Microsoft / Power BI account.  The tool waits for you to finish and then
-        confirms success.  Your credentials are cached locally so you will not
-        need to repeat this step until the refresh token expires (~90 days).
+        The tool uses a two-step flow:
+        - First call: returns a URL and a one-time code for you to open in a browser.
+        - Second call: completes the authentication after you have signed in.
+
+        Your credentials are cached locally so you will not need to repeat this
+        step until the refresh token expires (~90 days).
         """
+        import asyncio
+
         token = _auth.get_token_silent()
         if token:
             return "Already authenticated. No action needed."
 
-        flow = _auth.initiate_device_flow()
-        instructions = flow["message"]
+        # Phase 2: complete a pending flow started in a previous call
+        pending = getattr(_auth, "_pending_flow", None)
+        if pending:
+            try:
+                loop = asyncio.get_event_loop()
+                result = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        None,
+                        lambda: _auth.app.acquire_token_by_device_flow(pending),
+                    ),
+                    timeout=60.0,
+                )
+            except asyncio.TimeoutError:
+                return (
+                    "Still waiting for browser authentication. "
+                    "Complete the sign-in then call `authenticate` again."
+                )
 
-        try:
-            _auth.complete_device_flow(flow)
-        except RuntimeError as exc:
-            return f"Authentication failed: {exc}"
+            if "access_token" in result:
+                _auth._pending_flow = None
+                return "Authentication successful! You can now use all Power BI tools."
+
+            error = result.get("error", "unknown")
+            if error == "authorization_pending":
+                return (
+                    "Still waiting for browser authentication. "
+                    "Complete the sign-in then call `authenticate` again."
+                )
+
+            # Flow expired or failed — clear so the next call starts fresh
+            _auth._pending_flow = None
+            return (
+                f"Authentication failed ({error}): "
+                f"{result.get('error_description', 'unknown error')}. "
+                "Call `authenticate` again to restart."
+            )
+
+        # Phase 1: start a new device code flow and return the URL + code
+        flow = _auth.initiate_device_flow()
+        verification_uri = flow.get("verification_uri", "https://microsoft.com/devicelogin")
+        user_code = flow["user_code"]
 
         return (
-            f"{instructions}\n\n"
-            "Authentication successful! You can now use all Power BI tools."
+            f"## Power BI Authentication\n\n"
+            f"1. Open: {verification_uri}\n"
+            f"2. Enter code: **{user_code}**\n"
+            f"3. Sign in with your Microsoft / Power BI account\n\n"
+            f"After completing browser sign-in, call `authenticate` again to finish."
         )
+
+    @mcp.tool()
+    async def logout() -> str:
+        """
+        Sign out of Power BI by clearing the cached credentials.
+
+        After logging out, call `authenticate` to sign in again.
+        """
+        _auth._pending_flow = None
+        _auth.clear_cache()
+        return "Logged out. Cached credentials have been cleared. Call `authenticate` to sign in again."
 
     @mcp.tool()
     async def list_workspaces() -> str:

@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "powerbi-mcp"
+version = "0.1.0"
+description = "Read-only MCP server for Power BI semantic models — query workspaces, datasets, and execute DAX via any MCP client"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+keywords = ["mcp", "power-bi", "powerbi", "dax", "llm", "claude"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "mcp[cli]>=1.0.0",
+    "msal>=1.28.0",
+    "msal-extensions>=1.2.0",
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+]
+
+[project.urls]
+Repository = "https://github.com/mbrummerstedt/powerbi-remote-mcp-server"
+Issues = "https://github.com/mbrummerstedt/powerbi-remote-mcp-server/issues"
+
+[project.scripts]
+powerbi-mcp = "powerbi_mcp.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["powerbi_mcp"]
