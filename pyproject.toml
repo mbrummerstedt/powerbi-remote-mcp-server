@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "powerbi-mcp"
+name = "powerbi-analyst-mcp"
 version = "0.1.0"
 description = "Read-only MCP server for Power BI semantic models — query workspaces, datasets, and execute DAX via any MCP client"
 readme = "README.md"
@@ -32,11 +32,11 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/mbrummerstedt/powerbi-remote-mcp-server"
-Issues = "https://github.com/mbrummerstedt/powerbi-remote-mcp-server/issues"
+Repository = "https://github.com/mbrummerstedt/powerbi-analyst-mcp"
+Issues = "https://github.com/mbrummerstedt/powerbi-analyst-mcp/issues"
 
 [project.scripts]
-powerbi-mcp = "powerbi_mcp.app:main"
+powerbi-analyst-mcp = "powerbi_mcp.app:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["powerbi_mcp"]

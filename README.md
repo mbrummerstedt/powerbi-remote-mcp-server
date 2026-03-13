@@ -1,4 +1,4 @@
-# Power BI Remote MCP Server
+# Power BI Analyst MCP
 
 A read-only [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that connects an LLM (Claude, Cursor, etc.) to your Power BI semantic models. Every request runs under your own Power BI account via **OAuth 2.0 delegated permissions** — the server never has credentials of its own.
 
@@ -64,14 +64,14 @@ pip install uv   # if you don't have uv yet
 **Alternative — install with pip:**
 
 ```bash
-pip install powerbi-mcp
+pip install powerbi-analyst-mcp
 ```
 
 **Manual — clone and install from source:**
 
 ```bash
-git clone https://github.com/mbrummerstedt/powerbi-remote-mcp-server.git
-cd powerbi-remote-mcp-server
+git clone https://github.com/mbrummerstedt/powerbi-analyst-mcp.git
+cd powerbi-analyst-mcp
 pip install .
 ```
 
@@ -105,7 +105,7 @@ Add the following to your `claude_desktop_config.json`:
   "mcpServers": {
     "powerbi": {
       "command": "uvx",
-      "args": ["powerbi-mcp"],
+      "args": ["powerbi-analyst-mcp"],
       "env": {
         "POWERBI_CLIENT_ID": "your-client-id",
         "POWERBI_TENANT_ID": "organizations"
@@ -128,7 +128,7 @@ Add a `.cursor/mcp.json` file in your project (or use the global config):
   "mcpServers": {
     "powerbi": {
       "command": "uvx",
-      "args": ["powerbi-mcp"],
+      "args": ["powerbi-analyst-mcp"],
       "env": {
         "POWERBI_CLIENT_ID": "your-client-id"
       }
@@ -139,10 +139,11 @@ Add a `.cursor/mcp.json` file in your project (or use the global config):
 
 #### Alternative (without uv)
 
-If you installed via `pip install powerbi-mcp`, replace `"command": "uvx"` + `"args": ["powerbi-mcp"]` with:
+If you installed via `pip install powerbi-analyst-mcp`, replace `"command": "uvx"` + `"args": ["powerbi-analyst-mcp"]` with:
+
 
 ```json
-"command": "powerbi-mcp",
+"command": "powerbi-analyst-mcp",
 "args": []
 ```
 
@@ -238,8 +239,8 @@ Returns `rows`, `totalRows`, `offset`, `limit`, and `hasMore`. Increment `offset
 ### Project structure
 
 ```
-powerbi-remote-mcp-server/
-├── pyproject.toml              # Package metadata and entry point (powerbi-mcp)
+powerbi-analyst-mcp/
+├── pyproject.toml              # Package metadata and entry point (powerbi-analyst-mcp)
 ├── server.py                   # CLI wrapper: handles --login flag for terminal auth
 ├── requirements.txt            # Runtime dependencies (mirrors pyproject.toml)
 ├── requirements-dev.txt        # Test dependencies (pytest, respx)
@@ -272,8 +273,8 @@ powerbi-remote-mcp-server/
 ### Set up a development environment
 
 ```bash
-git clone https://github.com/mbrummerstedt/powerbi-remote-mcp-server.git
-cd powerbi-remote-mcp-server
+git clone https://github.com/mbrummerstedt/powerbi-analyst-mcp.git
+cd powerbi-analyst-mcp
 
 python -m venv .venv
 source .venv/bin/activate
