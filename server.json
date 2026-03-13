@@ -1,0 +1,29 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.mbrummerstedt/powerbi-analyst-mcp",
+  "title": "Power BI Analyst MCP",
+  "description": "Connect LLMs to Power BI semantic models. Browse workspaces, tables, and measures, run DAX queries, and handle large results via local CSV with paged reading.",
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "powerbi-analyst-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "POWERBI_CLIENT_ID",
+          "description": "Azure AD application (client) ID",
+          "required": true
+        },
+        {
+          "name": "POWERBI_TENANT_ID",
+          "description": "Azure AD directory (tenant) ID",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

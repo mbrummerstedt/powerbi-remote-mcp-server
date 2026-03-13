@@ -1,5 +1,7 @@
 # Power BI Analyst MCP
 
+<!-- mcp-name: io.github.mbrummerstedt/powerbi-analyst-mcp -->
+
 [![PyPI](https://img.shields.io/pypi/v/powerbi-analyst-mcp)](https://pypi.org/project/powerbi-analyst-mcp/)
 [![Python](https://img.shields.io/pypi/pyversions/powerbi-analyst-mcp)](https://pypi.org/project/powerbi-analyst-mcp/)
 [![Tests](https://img.shields.io/github/actions/workflow/status/mbrummerstedt/powerbi-analyst-mcp/tests.yml?label=tests)](https://github.com/mbrummerstedt/powerbi-analyst-mcp/actions)
